@@ -9,7 +9,7 @@ import os
 import sys
 from functools import reduce
 from operator import getitem
-from typing import Any
+from typing import Any, Callable
 from urllib.parse import urlparse, urlsplit, parse_qs
 
 import httpx  # type: ignore[import]
@@ -19,7 +19,7 @@ from requests.utils import parse_header_links
 __version__ = "0.1.0"
 
 
-async def xgetitem(*keys):
+def xgetitem(*keys: str | int) -> Callable[[Any], Any]:
     """
     Create a nested item getter function.
 
@@ -103,8 +103,8 @@ async def unpage(  # pylint: disable=too-many-arguments,too-many-locals
             next_link = next((x["url"] for x in links if x.get("rel") == "next"), None)
             last_link = next((x["url"] for x in links if x.get("rel") == "last"), None)
         elif next_key is not None and last_key is not None:
-            next_link = await xgetitem(*next_key.split("."))(data)
-            last_link = await xgetitem(*last_key.split("."))(data)
+            next_link = xgetitem(*next_key.split("."))(data)
+            last_link = xgetitem(*last_key.split("."))(data)
 
         if last_link is not None:
             if last_link.startswith("/"):

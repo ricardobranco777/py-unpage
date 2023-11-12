@@ -1,7 +1,11 @@
 FILES=*.py
 
 .PHONY: all
-all: flake8 pylint mypy black
+all: test flake8 pylint mypy black
+
+.PHONY: test
+test:
+	@python3 -m unittest tests/*.py
 
 .PHONY: flake8
 flake8:
