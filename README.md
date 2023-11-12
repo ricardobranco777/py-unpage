@@ -34,6 +34,6 @@ options:
 
 ## Examples:
 
-- `--data_key repositories https://registry.opensuse.org/v2/_catalog?n=50`
+- `--data-key repositories https://registry.opensuse.org/v2/_catalog?n=50`
 - `--param-page page https://src.opensuse.org/api/v1/repos/issues/search?limit=1`
 - `--param-page page --data-key issues_assigned --next-key pagination_issues_created.next --last_key pagination_issues_created.last 'https://code.opensuse.org/api/0/user/rbranco/issues?assignee=1&per_page=1'`
