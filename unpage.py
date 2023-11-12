@@ -3,6 +3,7 @@ unpage
 """
 
 import argparse
+import asyncio
 import json
 import os
 import sys
@@ -18,7 +19,7 @@ from requests.utils import parse_header_links
 __version__ = "0.1.0"
 
 
-def xgetitem(*keys):
+async def xgetitem(*keys):
     """
     Create a nested item getter function.
 
@@ -47,7 +48,7 @@ def xgetitem(*keys):
     return lambda item: reduce(getitem, keys, item)
 
 
-def log_response(response):
+async def log_response(response) -> None:
     """
     Log response
     """
@@ -60,12 +61,12 @@ def log_response(response):
     log += f"< {response.http_version} {response.status_code}\n"
     for header, value in response.headers.items():
         log += f"> {header}: {value}\n"
-    response.read()
+    await response.aread()
     log += f"< {response.text}"
     print(log, file=sys.stderr)
 
 
-def unpage(  # pylint: disable=too-many-arguments,too-many-locals
+async def unpage(  # pylint: disable=too-many-arguments,too-many-locals
     url: str,
     headers: dict[str, Any] | None = None,
     params: dict[str, Any] | None = None,
@@ -86,12 +87,12 @@ def unpage(  # pylint: disable=too-many-arguments,too-many-locals
 
     base_url = "://".join(urlsplit(url)[:2])
 
-    with httpx.Client(
+    async with httpx.AsyncClient(
         event_hooks={"response": [log_response]},
         follow_redirects=True,
         headers=headers,
     ) as client:
-        response = client.get(url, params=params)
+        response = await client.get(url, params=params)
         response.raise_for_status()
         data = response.json()
         entries = data if data_key is None else data[data_key]
@@ -102,30 +103,32 @@ def unpage(  # pylint: disable=too-many-arguments,too-many-locals
             next_link = next((x["url"] for x in links if x.get("rel") == "next"), None)
             last_link = next((x["url"] for x in links if x.get("rel") == "last"), None)
         elif next_key is not None and last_key is not None:
-            next_link = xgetitem(*next_key.split("."))(data)
-            last_link = xgetitem(*last_key.split("."))(data)
+            next_link = await xgetitem(*next_key.split("."))(data)
+            last_link = await xgetitem(*last_key.split("."))(data)
 
         if last_link is not None:
             if last_link.startswith("/"):
                 last_link = f"{base_url}{last_link}"
             last_page = int(parse_qs(urlparse(last_link).query)[param_page][0])
 
-            def get_page(page: int) -> list[dict[str, Any]]:
+            async def get_page(page: int) -> list[dict[str, Any]]:
                 nonlocal params
                 xparams = dict(params)
                 xparams[param_page] = page
-                response = client.get(url, params=xparams)
+                response = await client.get(url, params=xparams)
                 response.raise_for_status()
                 data = response.json()
                 return data if data_key is None else data[data_key]
 
-            for page in range(2, last_page + 1):
-                entries.extend(get_page(page))
+            tasks = [get_page(page) for page in range(2, last_page + 1)]
+            results = await asyncio.gather(*tasks)
+            for result in results:
+                entries.extend(result)
         else:
             while next_link is not None:
                 if next_link.startswith("/"):
                     next_link = f"{base_url}{next_link}"
-                response = client.get(next_link, params=params)
+                response = await client.get(next_link, params=params)
                 response.raise_for_status()
                 data = response.json()
                 entries.extend(data if data_key is None else data[data_key])
@@ -187,13 +190,15 @@ def main():
     headers["Accept"] = "application/json"
     headers["User-Agent"] = f"unpage/{__version__}"
 
-    result = unpage(
-        args.url,
-        headers=headers,
-        param_page=args.param_page,
-        data_key=args.data_key,
-        next_key=args.next_key,
-        last_key=args.last_key,
+    result = asyncio.run(
+        unpage(
+            args.url,
+            headers=headers,
+            param_page=args.param_page,
+            data_key=args.data_key,
+            next_key=args.next_key,
+            last_key=args.last_key,
+        )
     )
 
     print(json.dumps(result))
