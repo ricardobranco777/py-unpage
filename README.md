@@ -1,8 +1,10 @@
-![Build Status](https://github.com/ricardobranco777/unpage/actions/workflows/ci.yml/badge.svg)
+![Build Status](https://github.com/ricardobranco777/py-unpage/actions/workflows/ci.yml/badge.svg)
 
 # unpage
 
 Get all pages of an URL
+
+Golang version: https://github.com/ricardobranco777/unpage
 
 ## Requirements
 
