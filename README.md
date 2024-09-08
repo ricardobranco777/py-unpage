@@ -4,8 +4,6 @@
 
 Get all pages of an URL
 
-Docker image available at `ghcr.io/ricardobranco777/unpage`
-
 ## Requirements
 
 - [requirements-dev.txt](requirements-dev.txt)
