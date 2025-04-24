@@ -66,7 +66,7 @@ async def log_response(response) -> None:
     print(log, file=sys.stderr)
 
 
-async def unpage(  # pylint: disable=too-many-arguments,too-many-locals
+async def unpage(  # pylint: disable=too-many-arguments,too-many-locals,too-many-positional-arguments
     url: str,
     headers: dict[str, Any] | None = None,
     params: dict[str, Any] | None = None,
@@ -112,7 +112,6 @@ async def unpage(  # pylint: disable=too-many-arguments,too-many-locals
             last_page = int(parse_qs(urlparse(last_link).query)[param_page][0])
 
             async def get_page(page: int) -> list[dict[str, Any]]:
-                nonlocal params
                 xparams = dict(params)
                 xparams[param_page] = page
                 response = await client.get(url, params=xparams)
